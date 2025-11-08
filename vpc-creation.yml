@@ -1,0 +1,154 @@
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Creation of vpc using CFT 
+
+Resources:
+# This is my vpc 
+      MyVPC:
+        Type: AWS::EC2::VPC
+        Properties:
+          CidrBlock: 10.0.0.0/16
+          EnableDnsSupport: true
+          EnableDnsHostnames: true
+          Tags:
+            - Key: Name
+              Value: MyVPC
+
+# This is my subnets one is public and 2nd one is private 
+      PublicSubnet:
+        Type: AWS::EC2::Subnet
+        Properties:
+          VpcId: !Ref MyVPC
+          CidrBlock: 10.0.1.0/24
+          AvailabilityZone: ap-south-1a
+          MapPublicIpOnLaunch: true 
+          Tags:
+            - Key: Name
+              Value: PublicSubnet 
+
+      PrivateSubnet:
+        Type: AWS::EC2::Subnet
+        Properties:
+          VpcId: !Ref MyVPC
+          CidrBlock: 10.0.2.0/24
+          AvailabilityZone: ap-south-1b
+          MapPublicIpOnLaunch: false
+          Tags:
+            - Key: Name
+              Value: PrivateSubnet
+
+# Internet gateway 
+      MyInternetGateway:
+        Type: AWS::EC2::InternetGateway
+        Properties:
+          Tags:
+            - Key: Name
+              Value: MyInternetGateway
+
+      AttachGateway:
+        Type: AWS::EC2::VPCGatewayAttachment
+        Properties:
+          VpcId: !Ref MyVPC
+          InternetGatewayId: !Ref MyInternetGateway    
+
+# Route table 
+      PublicRouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties:
+          VpcId: !Ref MyVPC
+          Tags:
+            - Key: Name
+              Value: PublicRouteTable      
+
+      PublicRoute:
+       Type: AWS::EC2::Route
+       DependsOn: AttachGateway
+       Properties:
+          RouteTableId: !Ref PublicRouteTable
+          DestinationCidrBlock: 0.0.0.0/0
+          GatewayId: !Ref MyInternetGateway  
+      
+      PublicRouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+          RouteTableId: !Ref PublicRouteTable 
+          SubnetId: !Ref PublicSubnet
+ 
+# Public Security group 
+      MySecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+          GroupDescription: Allow SSH and HTTP access 
+          VpcId: !Ref MyVPC
+          SecurityGroupIngress:
+           - IpProtocol: tcp
+             FromPort: 22
+             ToPort: 22 
+             CidrIp: 0.0.0.0/0
+           - IpProtocol: tcp
+             FromPort: 80
+             ToPort: 80
+             CidrIp: 0.0.0.0/0 
+
+          Tags:
+             - Key: Name
+               Value: MySecurityGroup
+
+# Private security group 
+      MyPrivateSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+          GroupDescription: Private security group 
+          VpcId: !Ref MyVPC
+          Tags:
+            - Key: Name
+              Value: MyPrivateSecurityGroup   
+
+# Public instance attach with public subnet 
+      MyEC2Instance:
+        Type: AWS::EC2::Instance
+        Properties:
+          InstanceType: t3.micro
+          KeyName: awsdemo
+          ImageId: ami-02b8269d5e85954ef
+          SubnetId: !Ref PublicSubnet
+          SecurityGroupIds:
+             - !Ref MySecurityGroup
+
+          Tags:
+            - Key: Name
+              Value: MyEC2Instance  
+
+# Private instance 
+      MyPrivateInstance:
+        Type: AWS::EC2::Instance
+        Properties:
+          InstanceType: t3.micro
+          KeyName: awsdemo
+          ImageId: ami-02b8269d5e85954ef
+          SubnetId: !Ref PrivateSubnet
+          SecurityGroupIds:
+            - !Ref MyPrivateSecurityGroup
+          Tags:
+             - Key: Name
+               Value: MyPrivateInstance
+
+
+          
+             
+           
+          
+        
+
+
+
+        
+
+     
+
+
+        
+
+
+
+
